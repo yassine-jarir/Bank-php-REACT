@@ -104,7 +104,7 @@ class AccountController
     }
 
     // update 
-    // Method to handle PUT request for updating an account
+ 
     public function updateAccount()
     {
         // Get raw input data
