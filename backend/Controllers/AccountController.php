@@ -19,7 +19,7 @@ class AccountController
         // Get the JSON data sent via POST
         $data = json_decode(file_get_contents("php://input"));
 
-         if (
+        if (
             !isset($data->account_number) ||
             !isset($data->holder_name) ||
             !isset($data->balance) ||
@@ -72,7 +72,7 @@ class AccountController
         $account_type = isset($_GET['account_type']) ? $_GET['account_type'] : null;
 
         if ($account_type) {
-            
+
             $accounts = $this->account->getAccountsByType($account_type);
 
             if ($accounts) {
@@ -103,24 +103,24 @@ class AccountController
     }
 
     // update 
- 
+
     public function updateAccount()
     {
-         $data = json_decode(file_get_contents("php://input"), true);
+        $data = json_decode(file_get_contents("php://input"), true);
 
-         
+
         if (!isset($data['id'], $data['account_number'], $data['holder_name'], $data['balance'], $data['account_type'])) {
             echo json_encode(["success" => false, "message" => "Invalid input data"]);
             return;
         }
 
-        
+
         if ($this->account->updateAccount($data)) {
             echo json_encode(["success" => true, "message" => "Account updated successfully"]);
         } else {
             echo json_encode(["success" => false, "message" => "Failed to update account"]);
         }
     }
-    
+
 }
 ?>

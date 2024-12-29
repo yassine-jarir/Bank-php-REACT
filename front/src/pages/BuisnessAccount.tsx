@@ -168,7 +168,7 @@ const handleSaveUpdate = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Type de Compte</label>
-              <select
+              <select disabled
                 value={selectedAccount.account_type}
                 onChange={(e) => setSelectedAccount({ ...selectedAccount, account_type: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
@@ -181,7 +181,7 @@ const handleSaveUpdate = () => {
             <div className="flex justify-between">
               <button
                 onClick={handleModalClose}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg"
+                className="bg-red-800 text-white px-4 py-2 rounded-lg"
               >
                 Annuler
               </button>
