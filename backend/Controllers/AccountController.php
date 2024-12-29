@@ -104,7 +104,7 @@ class AccountController
     }
 
     // update 
- 
+
     public function updateAccount()
     {
         // Get raw input data
@@ -123,5 +123,6 @@ class AccountController
             echo json_encode(["success" => false, "message" => "Failed to update account"]);
         }
     }
+
 }
 ?>

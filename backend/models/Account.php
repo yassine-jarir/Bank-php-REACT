@@ -3,7 +3,7 @@ require_once 'BaseModel.php';
 
 class Account extends BaseModel
 {
-     public $id;
+    public $id;
     public $account_number;
     public $holder_name;
     public $balance;
@@ -20,7 +20,7 @@ class Account extends BaseModel
         parent::__construct($db);
     }
 
-     public function create()
+    public function create()
     {
         // Insert the common account data into the main accounts table
         $query = "INSERT INTO " . $this->table_name . " SET account_number=:account_number, holder_name=:holder_name, balance=:balance, account_type=:account_type";
@@ -65,7 +65,7 @@ class Account extends BaseModel
         return $stmt->execute();
     }
 
-      private function insertCurrentAccount($account_id)
+    private function insertCurrentAccount($account_id)
     {
         $query = "INSERT INTO current_accounts SET account_id=:account_id, overdraft_limit=:overdraft_limit";
         $stmt = $this->conn->prepare($query);
@@ -76,7 +76,7 @@ class Account extends BaseModel
         return $stmt->execute();
     }
 
-     private function insertBusinessAccount($account_id)
+    private function insertBusinessAccount($account_id)
     {
         $query = "INSERT INTO business_accounts SET account_id=:account_id, transaction_fee=:transaction_fee";
         $stmt = $this->conn->prepare($query);
@@ -156,75 +156,132 @@ class Account extends BaseModel
         $stmt->execute();
     }
 
-    // update 
-    public function updateAccount($data) {
-        // Update general account fields
-        $query = "UPDATE " . $this->table_name . " 
-                  SET 
-                      account_number = :account_number, 
+    // update
+    private function deleteOldAccountTypeData($account_id, $current_type)
+    {
+        // Determine the table based on the current account type
+        $table_name = $this->getTypeSpecificTable($current_type);
+        if ($table_name) {
+            $query = "DELETE FROM $table_name WHERE account_id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $account_id);
+            $stmt->execute();
+        }
+    }
+
+    private function insertNewAccountTypeData($account_id, $new_type, $data)
+    {
+        // Determine the table based on the new account type
+        $table_name = $this->getTypeSpecificTable($new_type);
+        if ($table_name) {
+            $query = "INSERT INTO $table_name (account_id, additional_data) VALUES (:id, :additional_data)";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $account_id);
+            $stmt->bindParam(':additional_data', $data['additional_data']); // Add necessary fields for the new type
+            $stmt->execute();
+        }
+    }
+
+    private function getTypeSpecificTable($account_type)
+    {
+        // Map account types to their specific tables
+        switch ($account_type) {
+            case 'savings':
+                return 'savings_accounts';
+            case 'current':
+                return 'current_accounts';
+            case 'business':
+                return 'business_accounts';
+            default:
+                return null;
+        }
+    }
+    public function updateAccount($data)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            // Update general account information
+            $query = "UPDATE " . $this->table_name . " 
+                  SET account_number = :account_number, 
                       holder_name = :holder_name, 
-                      balance = :balance, 
-                      account_type = :account_type 
+                      balance = :balance 
                   WHERE id = :id";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':account_number', $data['account_number']);
-        $stmt->bindParam(':holder_name', $data['holder_name']);
-        $stmt->bindParam(':balance', $data['balance']);
-        $stmt->bindParam(':account_type', $data['account_type']);
-        $stmt->bindParam(':id', $data['id']);
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':account_number', $data['account_number']);
+            $stmt->bindParam(':holder_name', $data['holder_name']);
+            $stmt->bindParam(':balance', $data['balance']);
+            $stmt->bindParam(':id', $data['id']);
+            $stmt->execute();
 
-        if (!$stmt->execute()) {
-            return false; // Stop if the base account update fails
+            // Update type-specific information
+            switch ($data['account_type']) {
+                case 'savings':
+                    $this->updateSavingsAccount($data);
+                    break;
+                case 'current':
+                    $this->updateCurrentAccount($data);
+                    break;
+                case 'business':
+                    $this->updateBusinessAccount($data);
+                    break;
+            }
+
+            $this->conn->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->conn->rollBack();
+            return false;
         }
+    }
 
-        // Update type-specific account details
-        switch ($data['account_type']) {
-            case 'Savings':
-                return $this->updateSavingsAccount($data);
-            case 'Current':
-                return $this->updateCurrentAccount($data);
-            case 'Business':
-                return $this->updateBusinessAccount($data);
-            default:
-                return false;
-        }}
-        // Update savings account
-    private function updateSavingsAccount($data) {
+     
+    public function getAccountType($account_id)
+    {
+        $query = "SELECT account_type FROM " . $this->table_name . " WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $account_id);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $result ? $result['account_type'] : null;
+    }
+
+     // Update type-specific account methods
+    private function updateSavingsAccount($data)
+    {
         $query = "UPDATE savings_accounts 
-                  SET interest_rate = :interest_rate 
-                  WHERE account_id = :account_id";
+              SET interest_rate = :interest_rate 
+              WHERE account_id = :account_id";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':interest_rate', $data['interest_rate']);
         $stmt->bindParam(':account_id', $data['id']);
-
         return $stmt->execute();
     }
 
-    // Update current account
-    private function updateCurrentAccount($data) {
+    private function updateCurrentAccount($data)
+    {
         $query = "UPDATE current_accounts 
-                  SET overdraft_limit = :overdraft_limit 
-                  WHERE account_id = :account_id";
+              SET overdraft_limit = :overdraft_limit 
+              WHERE account_id = :account_id";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':overdraft_limit', $data['overdraft_limit']);
         $stmt->bindParam(':account_id', $data['id']);
-
         return $stmt->execute();
     }
 
-    // Update business account
-    private function updateBusinessAccount($data) {
+    private function updateBusinessAccount($data)
+    {
         $query = "UPDATE business_accounts 
-                  SET transaction_fee = :transaction_fee 
-                  WHERE account_id = :account_id";
+              SET transaction_fee = :transaction_fee 
+              WHERE account_id = :account_id";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':transaction_fee', $data['transaction_fee']);
         $stmt->bindParam(':account_id', $data['id']);
-
         return $stmt->execute();
     }
 }
