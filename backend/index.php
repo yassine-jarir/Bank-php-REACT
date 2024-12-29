@@ -15,14 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 // get each account 
 if (isset($_GET['action']) && $_GET['action'] === 'getAccounts') {
-    $accountController->getAccountsByType();  // Call the controller method
+    $accountController->getAccountsByType();   
 }
 // DELETE
 if ($_SERVER['REQUEST_METHOD'] == 'DELETE' && isset($_GET['action']) && $_GET['action'] === 'deleteAccount') {
-    $accountController->deleteAccount();  // Call the controller's delete method
+    $accountController->deleteAccount();  
 }
 // update 
 if ($_SERVER['REQUEST_METHOD'] == 'PUT' && isset($_GET['action']) && $_GET['action'] === 'updateAccount') {
-    $accountController->updateAccount(); // Call the controller's update method
+    $accountController->updateAccount();  
 }
 ?>
